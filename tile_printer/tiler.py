@@ -34,7 +34,6 @@ class Tiler:
     def image_size_mm_y(self):
         return self.image_size_mm[1]
 
-
     def make_tiles(self,
                    image_size: tuple,
                    padding: tuple = (0, 0, 0, 0),
@@ -60,6 +59,7 @@ class Tiler:
         :param page_orient: page orientation
         :param save_path: save result to files and return path list if not None, else return PIL.Image objects
         :param offset: global offset on page (mm)
+        :param filename:
         :return: dict
         """
         page_size = self.orient_page(page_size, orient=page_orient)
@@ -78,6 +78,11 @@ class Tiler:
         resized = self.image.resize((mm_to_px(full_img_w, dpi), mm_to_px(full_img_h, dpi)))
 
         pages = []
+        if save_path:
+            filename = fix_format(Path(save_path).name or f'page_####.png')
+            save_path = Path(save_path).parent
+        else:
+            filename = None
         for page_num, tile in enumerate(tiles['rects']):
             rect = tile['rect']
             page_pos = tile['page_pos']
@@ -95,7 +100,7 @@ class Tiler:
                     new_image, mm_to_px(border_cut_line_height, dpi),
                     tuple(map(lambda x: mm_to_px(x, dpi), padding)))
             if save_path:
-                img_save_path = save_path / f'page_{page_num}.png'
+                img_save_path = save_path / filename.format(page_num)
                 new_image.save(img_save_path.as_posix(), 'PNG')
                 new_image = img_save_path.as_posix()
             pages.append(dict(
@@ -232,3 +237,15 @@ def px_to_mm(pixels: int, dpi: int):
 def mm_to_px(mm, dpi):
     return int(mm * dpi / 25.4)
 
+
+def fix_format(filename: str) -> str:
+    """
+    replace hashe symbols to python format with zero padding
+    :param filename:
+    :return:
+    """
+    import re
+    if re.search(r'#+', filename):
+        return re.sub('#+', '{:0>%dd}' % filename.count('#'), filename)
+    else:
+        return f"{Path(filename).stem}_{{:04d}}{Path(filename).suffix}"
