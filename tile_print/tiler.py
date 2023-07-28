@@ -15,7 +15,7 @@ ORIENT_LANDSCAPE = 2
 
 class Tiler:
     def __init__(self, src_image: Path, dpi: int = None):
-        self.path = src_image
+        self.path = Path(src_image)
         self.image: Image.Image = Image.open(self.path.as_posix())
         self.dpi = dpi or 96
         self.image.info['dpi'] = self.dpi
@@ -79,14 +79,17 @@ class Tiler:
 
         pages = []
         for page_num, tile in enumerate(tiles['rects']):
-            cropped_img = resized.crop((mm_to_px(tile.x, dpi),
-                                       mm_to_px(tile.y, dpi),
-                                       mm_to_px(tile.x2, dpi),
-                                       mm_to_px(tile.y2, dpi)))
+            rect = tile['rect']
+            page_pos = tile['page_pos']
+            cropped_img = resized.crop((mm_to_px(rect.x, dpi),
+                                       mm_to_px(rect.y, dpi),
+                                       mm_to_px(rect.x2, dpi),
+                                       mm_to_px(rect.y2, dpi)))
             new_image = Image.new('RGB', (mm_to_px(page_size[0], dpi),
                                           mm_to_px(page_size[1], dpi)),
                                   color=(255, 255, 255))
-            new_image.paste(cropped_img, (mm_to_px(padding[0], dpi), mm_to_px(padding[1], dpi)))
+            new_image.paste(cropped_img, (mm_to_px(padding[0]+page_pos[0], dpi),
+                                          mm_to_px(padding[1]+page_pos[1], dpi)))
             if border_cut_line:
                 self.add_border_cut_lines(
                     new_image, mm_to_px(border_cut_line_height, dpi),
@@ -98,9 +101,9 @@ class Tiler:
             pages.append(dict(
                 image=new_image,
                 page=page_num,
-                size=tile.size,
-                coords_pixels=tile.as_pixels(),
-                coords_mm=(tile.x, tile.y, tile.w, tile.h),
+                size=rect.size,
+                coords_pixels=rect.as_pixels(),
+                coords_mm=(rect.x, rect.y, rect.w, rect.h),
             ))
 
         return dict(
@@ -201,13 +204,20 @@ class Rect:
         """
         rects = []
         columns = rows = 0
-        for x_step in range(int(self.w//rect.w)+1):
-            for y_step in range(int(self.h//rect.h)+1):
-                next_rect = Rect((rect.w*x_step)+offset[0], (rect.h*y_step)+offset[1], rect.w, rect.h)
+        for y_step in range(int(self.h // rect.h) + 1):
+            for x_step in range(int(self.w//rect.w)+1):
+                next_rect = Rect((rect.w*x_step)-offset[0], (rect.h*y_step)-offset[1], rect.w, rect.h)
                 if self.is_intersected(next_rect):
                     rows = max(y_step + 1, rows)
                     columns = max(x_step + 1, columns)
-                    rects.append(next_rect if not crop else next_rect.crop(self))
+                    rects.append(dict(
+                        rect=next_rect if not crop else next_rect.crop(self),
+                        page_pos=(
+                            offset[0] if (y_step == 0 and x_step == 0) else 0,
+                            offset[1] if y_step == 0 else 0
+                        )
+                    )
+                    )
         return {
             'rects': rects,
             'columns': columns,
