@@ -101,6 +101,9 @@ class TilerMainWindow(QMainWindow):
             self.image_path_le.setText(path[0])
             self.refresh_canvas()
 
+    def canvas_changed(self, kwargs):
+        print(kwargs)
+
 
 class PaperCombo(QComboBox):
     def __init__(self, *args, **kwargs):

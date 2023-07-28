@@ -4,6 +4,7 @@ from PySide6.QtWidgets import *
 
 image = '/home/paul/Desktop/pyinstrument.png'
 
+
 class ImageItem(QGraphicsRectItem):
 
     handleTopLeft = 1

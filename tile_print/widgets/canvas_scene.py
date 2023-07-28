@@ -1,28 +1,41 @@
 from PySide6.QtCore import *
 from PySide6.QtGui import *
 from PySide6.QtWidgets import *
-from .page_item import CanvasPageItem
+# from .page_item import CanvasPageItem
 from .image_item import ImageItem
 from ..tiler import Tiler
 
 
 class CanvasScene(QGraphicsScene):
     gridSize = 50, 50
+    tilesChangedEvent = Signal(dict)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.image_item = None
+        self.image_item = ImageItem()
         self.padding = [0, 0, 0, 0]
         self.pages = []
         self.setSceneRect(QRect(0, 0, 6000, 6000))
         self.pos_under_cursor = None
-        self.addItem(ImageItem())
+        self.addItem(self.image_item)
+        # self.overlay = OverlayItem()
+        # self.addItem(self.overlay)
 
-    def drawBackground(self, painter, rect):
+    def drawBackground(self, painter: QPainter, rect: QRect):
         painter.setPen(Qt.NoPen)
         painter.fillRect(rect, QBrush(QColor(30,30,30)))
         left = int(rect.left()) - (int(rect.left()) % self.gridSize[0])
         top = int(rect.top()) - (int(rect.top()) % self.gridSize[1])
+
+        image_rect = self.image_item.rect()
+        image_rect.moveTo(self.image_item.pos())
+        paper_rects = self.get_paper_rects(image_rect, self.gridSize)
+        painter.save()
+        painter.setBrush(QBrush(QColor('#444444')))
+        for paper_rect in paper_rects:
+            painter.drawRect(paper_rect)
+
+        painter.restore()
         lines = []
         right = int(rect.right())
         bottom = int(rect.bottom())
@@ -34,19 +47,26 @@ class CanvasScene(QGraphicsScene):
         painter.setPen(QPen(QBrush(QColor(50,50,50)), 1, Qt.SolidLine))
         painter.drawLines(lines)
 
-        if self.pos_under_cursor:
-            if not self.itemAt(self.pos_under_cursor, QTransform()):
-                x = (self.gridSize[0]*int(self.pos_under_cursor.x() // self.gridSize[0]))
-                y = (self.gridSize[1]*int(self.pos_under_cursor.y() // self.gridSize[1]))
-                page_rect = QRect(x, y, *self.gridSize)
-                page_rect = page_rect.adjusted(-self.padding[0], -self.padding[1], self.padding[2], self.padding[3])
-                painter.setPen(QPen(QBrush(QColor(150, 150, 150, 150)), 3, Qt.SolidLine))
-                painter.drawRect(page_rect)
+        # if self.pos_under_cursor:
+        #     if not self.itemAt(self.pos_under_cursor, QTransform()):
+        #         x = (self.gridSize[0]*int(self.pos_under_cursor.x() // self.gridSize[0]))
+        #         y = (self.gridSize[1]*int(self.pos_under_cursor.y() // self.gridSize[1]))
+        #         page_rect = QRect(x, y, *self.gridSize)
+        #         page_rect = page_rect.adjusted(-self.padding[0], -self.padding[1], self.padding[2], self.padding[3])
+        #         painter.setPen(QPen(QBrush(QColor(150, 150, 150, 150)), 3, Qt.SolidLine))
+        #         painter.drawRect(page_rect)
 
-        # painter.setPen(QPen(QBrush(QColor(150,150,150, 150)), 2, Qt.SolidLine))
-        # painter.drawLine(0, -30, 0, 30)
-        # painter.drawLine(-30, 0, 30, 0)
-        # painter.drawRect(self.sceneRect())
+    def get_paper_rects(self, image_rect, grid_size):
+        x_count = int((image_rect.width()+image_rect.x()) // grid_size[0])+1
+        y_count = int((image_rect.height()+image_rect.y()) // grid_size[1])+1
+        paper_rects = []
+        for x in range(x_count):
+            for y in range(y_count):
+                paper_rect = QRect(x*grid_size[0], y*grid_size[1], *grid_size)
+                if not paper_rect.intersects(image_rect.toRect()):
+                    continue
+                paper_rects.append(paper_rect)
+        return paper_rects
 
     def draw_pages(self, **kwargs):
         while self.pages:
@@ -60,6 +80,24 @@ class CanvasScene(QGraphicsScene):
         self.pos_under_cursor = event.scenePos()
         self.update()
         return super().mouseMoveEvent(event)
+
+# class OverlayItem(QGraphicsItem):
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         self.setAcceptHoverEvents(True)
+
+    # def hoverEnterEvent(self, event):
+    #     self.setCursor(Qt.PointingHandCursor)
+
+    # def hoverLeaveEvent(self, event):
+    #     self.setCursor(Qt.ArrowCursor)
+
+    # def paint(self, painter, option, widget):
+    #     pass
+    #
+    # def boundingRect(self):
+    #     return self.scene().sceneRect()
+
 
     # def mouseDoubleClickEvent(self, event):
     #     self.addNode(event.scenePos())
