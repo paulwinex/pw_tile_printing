@@ -14,30 +14,28 @@ window_icon_path = resource_path/"tiler.png"
 class TilerMainWindow(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Tiler")
+        self.setWindowTitle("Tile Printer")
         self.setWindowIcon(QIcon(window_icon_path.as_posix()))
         self.resize(1200, 800)
-        self.central_widget = QWidget()
+        self.central_widget = QWidget(self)
         self.setCentralWidget(self.central_widget)
         self.layout = QVBoxLayout()
         self.central_widget.setLayout(self.layout)
-        self.status_bar = QStatusBar()
+        self.status_bar = QStatusBar(self)
         self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage("Ready")
-        # add toolbar
-        self.toolbar = QToolBar()
+        self.status_bar.showMessage("Ready", 3000)
+
+        self.toolbar = QToolBar(self)
         self.toolbar.setIconSize(QSize(24, 24))
-        self.addToolBar(Qt.TopToolBarArea, self.toolbar)
-        self.toolbar.addAction(QIcon((resource_path/"tiler.png").as_posix()), "Tiler", self.about)
+        self.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.toolbar)
 
         btn_ly = QHBoxLayout()
-        btn_ly.addWidget(QPushButton('Reset',  clicked=self.reset_image))
-        btn_ly.addWidget(QPushButton('Save',  clicked=self.save_images))
-        btn_ly.addWidget(QPushButton('Print', clicked=self.print_images))
+        btn_ly.addWidget(QPushButton('Reset Image',  clicked=self.reset_image))
+        btn_ly.addWidget(QPushButton('Auto Fit'))
+        btn_ly.addWidget(QPushButton('Save Tiles to PNG',  clicked=self.save_images))
+        btn_ly.addWidget(QPushButton('Print All Tiles', clicked=self.print_images))
+        btn_ly.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Preferred))
         self.layout.addLayout(btn_ly)
-
-        # self.info_lb = QLabel('Open New Image')
-        # self.layout.addWidget(self.info_lb)
 
         self.canvas_view = CanvasView()
         self.layout.addWidget(self.canvas_view)
@@ -46,7 +44,7 @@ class TilerMainWindow(QMainWindow):
         self.paper_cbb.currentIndexChanged.connect(self.refresh_canvas)
         self.toolbar.addWidget(self.paper_cbb)
 
-        rb_widget = QWidget()
+        rb_widget = QWidget(self)
         rb_layout = QHBoxLayout()
         rb_widget.setLayout(rb_layout)
         self.toolbar.addWidget(rb_widget)
@@ -76,9 +74,6 @@ class TilerMainWindow(QMainWindow):
         self.browse_image_btn.setText("...")
         self.toolbar.addWidget(self.browse_image_btn)
 
-        # self.toolbar.addWidget(QPushButton('-', clicked=partial(self.canvas_view.s.scale_image, 0.9)))
-
-        # self.toolbar.addAction(QAction('Update', self, triggered=self.refresh_canvas), )
         self.refresh_canvas()
         self.show()
 
@@ -112,9 +107,6 @@ class TilerMainWindow(QMainWindow):
             self.set_image(path[0])
             self.refresh_canvas()
 
-    def canvas_changed(self, kwargs):
-        print(kwargs)
-
     def set_image(self, path):
         self.image_path_le.setText(path)
         self.canvas_view.s.set_image(path)
@@ -127,17 +119,23 @@ class TilerMainWindow(QMainWindow):
         self.refresh_canvas()
 
     def save_images(self):
+        if not self.canvas_view.s.image_item:
+            QMessageBox.warning(self, "Warning", "No image loaded", QMessageBox.StandardButton.Ok)
+            return
         opt = self.collect_options()
-        save_path = QFileDialog.getExistingDirectory(self, "Save Images")
+        save_path = QFileDialog.getSaveFileName(self, "Save Images", filter='*.png')
         if save_path:
+            self.update()
             t = Tiler(Path(self.get_current_image()), dpi=opt['dpi'])
-            tiles = t.make_tiles(**opt, keep_aspect_ratio=True, save_path=Path(save_path))
-            print('TILES:')
+            tiles = t.make_tiles(**opt, keep_aspect_ratio=True, save_path=Path(save_path[0]))
+            saved_pages_count = len(tiles['pages'])
             print(tiles)
+            QMessageBox.information(self, 'Save completed', 'Files saved to: {}\n{} pages'.format(save_path[0], saved_pages_count), QMessageBox.StandardButton.Ok)
+        return save_path
 
     def print_images(self):
-        opt = self.collect_options()
-        print(opt)
+        save_path = self.save_images()
+        print(save_path)
 
     def collect_options(self):
         padding = self.padding_wd.get_padding()

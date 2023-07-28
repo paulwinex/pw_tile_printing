@@ -5,7 +5,7 @@ OPEN_UI = not bool(sys.argv[1:])
 
 if __name__ == '__main__':
     if OPEN_UI:
-        from tile_print import main
+        from tile_printer import main
         main.show()
     else:
         parser = argparse.ArgumentParser()
