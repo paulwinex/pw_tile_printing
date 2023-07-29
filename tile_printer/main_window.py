@@ -29,7 +29,7 @@ class TilerMainWindow(QMainWindow):
         self.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.toolbar)
 
         btn_ly = QHBoxLayout()
-        btn_ly.addWidget(QPushButton('Reset Image',  clicked=self.reset_image))
+        btn_ly.addWidget(QPushButton('Reset',  clicked=self.reset_image))
         btn_ly.addWidget(QPushButton('Auto Fit'))
         btn_ly.addWidget(QPushButton('Save Tiles to PNG',  clicked=self.save_images))
         btn_ly.addWidget(QPushButton('Print All Tiles', clicked=self.print_images))
@@ -79,6 +79,7 @@ class TilerMainWindow(QMainWindow):
         self._current_info = {}
 
         self.refresh_canvas()
+        self.__add_console()
         self.show()
 
     def closeEvent(self, event):
@@ -130,6 +131,7 @@ class TilerMainWindow(QMainWindow):
 
     def reset_image(self):
         self.set_image(self.get_current_image().strip())
+        self.canvas_view.reset_scale()
         self.refresh_canvas()
 
     def _save_tiles(self, save_path):
@@ -178,7 +180,7 @@ class TilerMainWindow(QMainWindow):
         page_size = Tiler.orient_page(page_size, orient)
         image_info['offset'] = (
             image_info['offset'][0] % (page_size[0]-padding[0]-padding[2]),
-            image_info['offset'][1] % page_size[1]-padding[1]-padding[3])
+            image_info['offset'][1] % (page_size[1]-padding[1]-padding[3]))
         return dict(**image_info,
                     padding=padding,
                     page_count=self.canvas_view.s.active_pages,
@@ -189,6 +191,15 @@ class TilerMainWindow(QMainWindow):
 
     def get_current_page_size(self):
         return self.paper_cbb.get_paper_size()
+
+    def __add_console(self):
+        try:
+            from py_console import console
+            c = console.Console(None, namespace={'dial': self}, parent=self)
+            c.setWindowFlags(Qt.WindowType.Tool)
+            self.toolbar.addWidget(QPushButton('>|', clicked=c.show, flat=True, maximumWidth=20))
+        except ImportError:
+            print('No Console')
 
 
 class PaperCombo(QComboBox):
