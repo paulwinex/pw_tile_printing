@@ -26,8 +26,7 @@ class ImageItem(QGraphicsItem):
         self.y = 0
 
     def boundingRect(self):
-        rect = QRect(self.x, self.y, self.w, self.h)
-        return rect
+        return QRect(self.x, self.y, self.w, self.h)
 
     def scaled_handle_size(self):
         scale = self.scene().views()[0].current_scale
