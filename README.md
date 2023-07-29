@@ -1,4 +1,12 @@
+# Multi Page Tile Printer
 
+> Work In Progress
+
+This tool provide you to make tiles for print one image on multiple pages.
+
+### Requirements
+
+For sending images to printer on linux you need to install CUSP
 
 # Install CUPS
 
@@ -17,3 +25,11 @@ Test module
 ```python
 import cups
 ```
+
+### Install
+
+todo...
+
+### Run
+
+todo...
