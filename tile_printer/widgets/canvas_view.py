@@ -21,6 +21,11 @@ class CanvasView(QGraphicsView):
         self.zoom = 1
         self.prev_delta = 0
         self.resize(1000, 800)
+        self._init_transform = self.transform()
+
+    @property
+    def current_scale(self):
+        return self.transform().m11()
 
     def wheelEvent(self, event):
         d = event.angleDelta().y() / 2880
@@ -28,21 +33,21 @@ class CanvasView(QGraphicsView):
             self.zoom = 1
         self.zoom += d
         self.prev_delta = d
-        # anc = self.transformationAnchor()
-        # self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.scale(self.zoom, self.zoom)
-        # self.setTransformationAnchor(anc)
-        # self.s.setSceneRect(self.viewport().visibleRegion().boundingRect())
         self.s.update()
         return True
 
     def reset_scale(self):
-        self.scale(1, 1)
+        self.setTransform(self._init_transform)
+
+    def fit(self):
+        if self.s.image_item:
+            self.fitInView(self.s.image_item.boundingRect(), Qt.AspectRatioMode.KeepAspectRatio)
 
     def set_image(self, *args, **kwargs):
         self.s.set_image(*args, **kwargs)
         self.s.setSceneRect(self.viewport().visibleRegion().boundingRect())
-        # self.s.update()
+        self.fit()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.MiddleButton:

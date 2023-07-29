@@ -30,6 +30,10 @@ class ImageItem(QGraphicsItem):
         rect = QRect(self.x, self.y, self.w, self.h)
         return rect
 
+    def scaled_handle_size(self):
+        scale = self.scene().views()[0].current_scale
+        return [min((self.h, max((x, x*(1/scale))))) for x in self.handle_size]
+
     def set_width(self, value):
         self.w = value
         self.h = value / self._aspect_ratio
@@ -44,13 +48,13 @@ class ImageItem(QGraphicsItem):
         opacity = 155 if self.draw_handle else 50
         painter.setBrush(QBrush(QColor(255, 0, 0, opacity)))
         painter.setPen(Qt.PenStyle.NoPen)
-        handle_rect = QRect(0, 0, *self.handle_size)
+        handle_rect = QRect(0, 0, *self.scaled_handle_size())
         handle_rect.moveBottomRight(self.boundingRect().bottomRight())
         painter.drawRect(handle_rect)
 
     def hoverMoveEvent(self, moveEvent):
         pos = moveEvent.pos()
-        handle_rect = QRect(0, 0, *self.handle_size)
+        handle_rect = QRect(0, 0, *self.scaled_handle_size())
         handle_rect.moveBottomRight(self.boundingRect().bottomRight())
         if handle_rect.contains(pos.toPoint()):
             self.draw_handle = True
@@ -70,7 +74,7 @@ class ImageItem(QGraphicsItem):
 
     def mousePressEvent(self, mouseEvent):
         pos = mouseEvent.pos()
-        handle_rect = QRect(0, 0, *self.handle_size)
+        handle_rect = QRect(0, 0, *self.scaled_handle_size())
         handle_rect.moveBottomRight(self.boundingRect().bottomRight())
         if handle_rect.contains(pos.toPoint()):
             self._is_resized = True
