@@ -49,7 +49,7 @@ class Tiler:
         """
         Split and resize image to tiles
 
-        :param image_size: final image size (mm)
+        :param image_size: output image size (mm)
         :param padding: print padding, depended on printer model (mm): left, top, right, bottom
         :param keep_aspect_ratio: keep aspect ratio on image resize
         :param border_cut_line: add border cut line on image
@@ -59,7 +59,6 @@ class Tiler:
         :param page_orient: page orientation
         :param save_path: save result to files and return path list if not None, else return PIL.Image objects
         :param offset: global offset on page (mm)
-        :param filename:
         :return: dict
         """
         page_size = self.orient_page(page_size, orient=page_orient)
@@ -67,22 +66,27 @@ class Tiler:
         scale_factor_y = image_size[1]/self.image_size_mm_y
         if keep_aspect_ratio:
             scale_factor_x = scale_factor_y = min((scale_factor_x, scale_factor_y))
+        # get image size in mm
         full_img_w, full_img_h = (self.image_size_mm_x*scale_factor_x,
                                   self.image_size_mm_y*scale_factor_y)
+        # get page size in mm without padding
         full_page_w, full_page_h = (page_size[0]-padding[0]-padding[2],
                                     page_size[1]-padding[1]-padding[3])
         image_rect = Rect(0, 0, full_img_w, full_img_h)
         page_rect = Rect(0, 0, full_page_w, full_page_h)
         tiles = image_rect.tile_rects_in_area(page_rect, offset=offset, crop=True)
         pprint(tiles)
+        # resize image to full size in mm using dpi
         resized = self.image.resize((mm_to_px(full_img_w, dpi), mm_to_px(full_img_h, dpi)))
-
-        pages = []
+        # get save path
         if save_path:
-            filename = fix_format(Path(save_path).name or f'page_####.png')
+            filename = fix_format(Path(Path(save_path).name or f'page_####.png').with_suffix('.png').name)
             save_path = Path(save_path).parent
         else:
             filename = None
+        save_path.mkdir(exist_ok=True, parents=True)
+
+        pages = []
         for page_num, tile in enumerate(tiles['rects']):
             rect = tile['rect']
             page_pos = tile['page_pos']
@@ -125,9 +129,9 @@ class Tiler:
         else:
             return tuple(reversed(page_size))
 
-    def add_border_cut_lines(self, img, height, padding):
+    def add_border_cut_lines(self, img, height, padding, width=0.5):
         color = (0, 0, 0)
-        width = 1
+        width = mm_to_px(width, self.dpi)
         draw = ImageDraw.Draw(img)
         p1 = (padding[0], padding[1])
         p2 = (img.width - padding[2], padding[1])
@@ -209,8 +213,8 @@ class Rect:
         """
         rects = []
         columns = rows = 0
-        for y_step in range(int(self.h // rect.h) + 1):
-            for x_step in range(int(self.w//rect.w)+1):
+        for y_step in range(int(self.h // rect.h) + 2):
+            for x_step in range(int(self.w//rect.w)+2):
                 next_rect = Rect((rect.w*x_step)-offset[0], (rect.h*y_step)-offset[1], rect.w, rect.h)
                 if self.is_intersected(next_rect):
                     rows = max(y_step + 1, rows)
