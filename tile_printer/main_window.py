@@ -1,5 +1,4 @@
-from functools import partial
-
+import tempfile
 from PySide6.QtWidgets import *
 from PySide6.QtGui import *
 from PySide6.QtCore import *
@@ -37,9 +36,6 @@ class TilerMainWindow(QMainWindow):
         btn_ly.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Preferred))
         self.layout.addLayout(btn_ly)
 
-        self.canvas_view = CanvasView()
-        self.layout.addWidget(self.canvas_view)
-
         self.paper_cbb = PaperCombo()
         self.paper_cbb.currentIndexChanged.connect(self.refresh_canvas)
         self.toolbar.addWidget(self.paper_cbb)
@@ -74,6 +70,14 @@ class TilerMainWindow(QMainWindow):
         self.browse_image_btn.setText("...")
         self.toolbar.addWidget(self.browse_image_btn)
 
+        self.info_line_lb = QLabel('Open an image to start')
+        self.layout.addWidget(self.info_line_lb)
+
+        self.canvas_view = CanvasView()
+        self.canvas_view.s.imageChanged.connect(self.refresh_info)
+        self.layout.addWidget(self.canvas_view)
+        self._current_info = {}
+
         self.refresh_canvas()
         self.show()
 
@@ -101,6 +105,16 @@ class TilerMainWindow(QMainWindow):
             dpi=dpi,
         )
 
+    def refresh_info(self, **kwargs):
+        opt = self.collect_options()
+        text = '  |  '.join([
+            f"Page size: {opt['page_size'][0]}mm x {opt['page_size'][1]}mm",
+            f"Page count: {opt['page_count']}",
+            f"Image size: {round(opt['image_size'][0], 2)}mm x {round(opt['image_size'][1], 2)}mm",
+            f"Offset: {round(opt['offset'][0], 2)}mm x {round(opt['offset'][1], 2)}mm",
+            ])
+        self.info_line_lb.setText(text)
+
     def browse_image(self):
         path = QFileDialog.getOpenFileName(self, "Open Image", filter='*.png')
         if path:
@@ -118,33 +132,59 @@ class TilerMainWindow(QMainWindow):
         self.set_image(self.get_current_image().strip())
         self.refresh_canvas()
 
-    def save_images(self):
+    def _save_tiles(self, save_path):
+        opt = self.collect_options()
+        print(opt)
+        t = Tiler(Path(self.get_current_image()), dpi=opt['dpi'])
+        tiles = t.make_tiles(**opt, keep_aspect_ratio=True, save_path=Path(save_path))
+        saved_pages_count = len(tiles['pages'])
+        QMessageBox.information(self, 'Save completed',
+                                'Files saved to: {}\n{} pages'.format(save_path[0], saved_pages_count),
+                                QMessageBox.StandardButton.Ok)
+        return tiles
+
+    def save_images(self, save_path=None):
         if not self.canvas_view.s.image_item:
             QMessageBox.warning(self, "Warning", "No image loaded", QMessageBox.StandardButton.Ok)
             return
-        opt = self.collect_options()
-        save_path = QFileDialog.getSaveFileName(self, "Save Images", filter='*.png')
+
+        if not save_path:
+            save_path = QFileDialog.getSaveFileName(self, "Save Images", filter='*.png')
+            if save_path:
+                save_path = save_path[0]
         if save_path:
-            self.update()
-            t = Tiler(Path(self.get_current_image()), dpi=opt['dpi'])
-            tiles = t.make_tiles(**opt, keep_aspect_ratio=True, save_path=Path(save_path[0]))
-            saved_pages_count = len(tiles['pages'])
-            print(tiles)
-            QMessageBox.information(self, 'Save completed', 'Files saved to: {}\n{} pages'.format(save_path[0], saved_pages_count), QMessageBox.StandardButton.Ok)
-        return save_path
+            tiles = self._save_tiles(save_path)
+            return [page['image'] for page in tiles['pages']]
 
     def print_images(self):
-        save_path = self.save_images()
-        print(save_path)
+        from print_manager import print_image, get_printers
+        tiles = self._save_tiles(Path(tempfile.mkdtemp(), 'tile-page.png').as_posix())
+        saved_files = [page['image'] for page in tiles['pages']]
+        if not saved_files:
+            return
+        printers = get_printers()
+        dial = SelectPrinterDialog(printers)
+        if dial.exec():
+            printer_name = dial.selected_printer()
+            if printer_name:
+                for file in saved_files:
+                    print_image(file, printer_name)
 
     def collect_options(self):
         padding = self.padding_wd.get_padding()
         image_info = self.canvas_view.s.image_item.get_image_info()
+        page_size = self.get_current_page_size()
+        orient = ORIENT_PORTRAIT if self.orient_p.isChecked() else ORIENT_LANDSCAPE
+        page_size = Tiler.orient_page(page_size, orient)
+        image_info['offset'] = (
+            image_info['offset'][0] % (page_size[0]-padding[0]-padding[2]),
+            image_info['offset'][1] % page_size[1]-padding[1]-padding[3])
         return dict(**image_info,
                     padding=padding,
-                    page_orient=ORIENT_PORTRAIT if self.orient_p.isChecked() else ORIENT_LANDSCAPE,
+                    page_count=self.canvas_view.s.active_pages,
+                    page_orient=orient,
                     dpi=self.dpi_sb.value(),
-                    page_size=self.get_current_page_size(),
+                    page_size=page_size,
                     )
 
     def get_current_page_size(self):
@@ -193,3 +233,17 @@ class PaddingWidget(QWidget):
             self.widgets['right'].value(),
             self.widgets['bottom'].value()
         )
+
+
+class SelectPrinterDialog(QDialog):
+    def __init__(self, printer_list, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.ly = QVBoxLayout(self)
+        self.lst = QListWidget()
+        self.lst.addItems(printer_list)
+        self.ly.addWidget(self.lst)
+        self.ly.addWidget(QPushButton('Select', clicked=self.accept))
+        self.ly.addWidget(QPushButton('Cancel', clicked=self.reject))
+
+    def selected_printer(self):
+        return self.lst.currentItem().text()
