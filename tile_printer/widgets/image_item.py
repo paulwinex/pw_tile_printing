@@ -5,7 +5,6 @@ from PySide6.QtWidgets import *
 
 class ImageItem(QGraphicsItem):
     handle_size = 20, 20
-    # geometryChanged = Signal()
 
     def __init__(self, image, callback, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -43,8 +42,8 @@ class ImageItem(QGraphicsItem):
         self.w = value * self._aspect_ratio
 
     def paint(self, painter, option, widget=None):
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform)
         painter.drawPixmap(self.boundingRect(), self.pix)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         opacity = 155 if self.draw_handle else 50
         painter.setBrush(QBrush(QColor(255, 0, 0, opacity)))
         painter.setPen(Qt.PenStyle.NoPen)

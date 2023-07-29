@@ -130,7 +130,7 @@ class Tiler:
         else:
             return tuple(reversed(page_size))
 
-    def add_border_cut_lines(self, img, height, padding, width=0.5):
+    def add_border_cut_lines(self, img, height, padding, width=0.2):
         color = (0, 0, 0)
         width = mm_to_px(width, self.dpi)
         draw = ImageDraw.Draw(img)
