@@ -28,8 +28,11 @@ class CanvasView(QGraphicsView):
             self.zoom = 1
         self.zoom += d
         self.prev_delta = d
+        # anc = self.transformationAnchor()
+        # self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.scale(self.zoom, self.zoom)
-        self.s.setSceneRect(self.viewport().visibleRegion().boundingRect())
+        # self.setTransformationAnchor(anc)
+        # self.s.setSceneRect(self.viewport().visibleRegion().boundingRect())
         self.s.update()
         return True
 
@@ -68,4 +71,5 @@ class CanvasView(QGraphicsView):
         self.setCursor(Qt.CursorShape.ArrowCursor)
         QGraphicsView.mouseReleaseEvent(self, event)
 
-
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        event.ignore()

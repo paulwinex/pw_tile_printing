@@ -5,13 +5,15 @@ from PySide6.QtWidgets import *
 
 class ImageItem(QGraphicsItem):
     handle_size = 20, 20
+    # geometryChanged = Signal()
 
-    def __init__(self, image, *args, **kwargs):
+    def __init__(self, image, callback, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setAcceptHoverEvents(True)
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, True)
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges, True)
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsFocusable, True)
+        self.callback = callback
         self.pix = QPixmap(image)
         self.draw_handle = False
         self._is_resized = False
@@ -27,6 +29,14 @@ class ImageItem(QGraphicsItem):
     def boundingRect(self):
         rect = QRect(self.x, self.y, self.w, self.h)
         return rect
+
+    def set_width(self, value):
+        self.w = value
+        self.h = value / self._aspect_ratio
+
+    def set_height(self, value):
+        self.h = value
+        self.w = value * self._aspect_ratio
 
     def paint(self, painter, option, widget=None):
         painter.drawPixmap(self.boundingRect(), self.pix)
@@ -49,6 +59,7 @@ class ImageItem(QGraphicsItem):
             self.draw_handle = False
             self.setCursor(Qt.CursorShape.ArrowCursor)
         self.update()
+        self.callback()
         super().hoverMoveEvent(moveEvent)
 
     def hoverLeaveEvent(self, moveEvent):
@@ -76,9 +87,10 @@ class ImageItem(QGraphicsItem):
             x_delta = self._press_point.x() - current_pos.x()
             y_delta = self._press_point.y() - current_pos.y()
             if self._is_resized:
-                self.w = self._orig_size[0] - x_delta
                 self.h = self._orig_size[1] - y_delta
-                self.w = int(self.h * self._aspect_ratio)
+                self.set_width(self._orig_size[0] - x_delta)
+                # self.w = self._orig_size[0] - x_delta
+                # self.w = int(self.h * self._aspect_ratio)
             else:
                 self.x = self._orig_pos_point.x() - x_delta
                 self.y = self._orig_pos_point.y() - y_delta
