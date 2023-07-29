@@ -45,6 +45,7 @@ class Tiler:
                    page_orient: int = ORIENT_PORTRAIT,
                    save_path: Path = None,
                    offset: tuple = (0, 0),
+                   **kwargs
                    ) -> dict:
         """
         Split and resize image to tiles
