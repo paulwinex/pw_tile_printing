@@ -33,7 +33,7 @@ poetry install
 
 #### Run
 
-```
+```shell
 poetry run ./start.sh
 ```
 
