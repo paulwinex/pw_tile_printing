@@ -51,7 +51,7 @@ TODO...
 - save ui options
 - add custom page size
 - print current page
-- page contur over image
+- page contour over image
 - more resize handles
 - support Windows
 - drag&drop image support
