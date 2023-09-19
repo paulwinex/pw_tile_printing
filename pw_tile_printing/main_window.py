@@ -119,7 +119,7 @@ class TilerMainWindow(QMainWindow):
         self.info_line_lb.setText(text)
 
     def browse_image(self):
-        path = QFileDialog.getOpenFileName(self, "Open Image", filter='*.png')
+        path = QFileDialog.getOpenFileName(self, "Open Image", filter='Images (*.png *.jpg)')
         if path:
             try:
                 self.set_image(path[0])
