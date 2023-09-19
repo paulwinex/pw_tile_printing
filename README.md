@@ -4,32 +4,54 @@
 
 This tool provide you to make tiles for print one image on multiple pages.
 
-### Requirements
+## Installation
 
-For sending images to printer on linux you need to install CUSP
+### Linux
 
-# Install CUPS
+For sending images to printer on linux you need to install CUSP. 
 
-Install requirements
 ```shell
 sudo apt install -y libcups2-dev python3-dev gcc
 ```
 
-Install module
+#### Install Poetry if not installed yet
+
+Documentation https://python-poetry.org/docs/
+
+#### Clone the project
 
 ```shell
-pip install pycups
-```
-Test module
-
-```python
-import cups
+git clone https://github.com/paulwinex/pw_tile_printing.git
+cd pw_tile_printing
 ```
 
-### Install
+#### install requirements
 
-todo...
+```shell
+poetry install
+```
 
-### Run
+#### Run
 
-todo...
+```
+poetry run ./start.sh
+```
+
+### Windows
+
+TODO...
+
+
+### TODO
+
+- support transparent PNG
+- optimize for big images
+- autofit tools (image to current pages, to N pages, to viewport)  
+- set fixed image size
+- save ui options
+- add custom page size
+- print current page
+- page contur over image
+- more resize handles
+- support Windows
+- drag&drop image support
