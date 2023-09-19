@@ -1,4 +1,4 @@
-# Multi Page Tile Printer
+# Multi Page Tile Printing
 
 > Work In Progress
 
