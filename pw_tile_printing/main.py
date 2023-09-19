@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QApplication
-from tile_printer.main_window import TilerMainWindow
+from pw_tile_printing.main_window import TilerMainWindow
 
 
 def show():

@@ -1,10 +1,12 @@
 import tempfile
+import traceback
+
 from PySide6.QtWidgets import *
 from PySide6.QtGui import *
 from PySide6.QtCore import *
 from pathlib import Path
 from .widgets.canvas_view import CanvasView
-from tiler import ORIENT_PORTRAIT, ORIENT_LANDSCAPE, Tiler
+from .tiler import ORIENT_PORTRAIT, ORIENT_LANDSCAPE, Tiler
 
 resource_path = Path(__file__).parent / "resources"
 window_icon_path = resource_path/"tiler.png"
@@ -30,7 +32,7 @@ class TilerMainWindow(QMainWindow):
 
         btn_ly = QHBoxLayout()
         btn_ly.addWidget(QPushButton('Reset',  clicked=self.reset_image))
-        btn_ly.addWidget(QPushButton('Auto Fit'))
+        # btn_ly.addWidget(QPushButton('Auto Fit'))
         btn_ly.addWidget(QPushButton('Save Tiles to PNG',  clicked=self.save_images))
         btn_ly.addWidget(QPushButton('Print All Tiles', clicked=self.print_images))
         btn_ly.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Preferred))
@@ -119,8 +121,12 @@ class TilerMainWindow(QMainWindow):
     def browse_image(self):
         path = QFileDialog.getOpenFileName(self, "Open Image", filter='*.png')
         if path:
-            self.set_image(path[0])
-            self.refresh_canvas()
+            try:
+                self.set_image(path[0])
+                self.refresh_canvas()
+            except Exception as e:
+                traceback.print_exc()
+                QMessageBox.warning(self, "Warning", str(e), QMessageBox.StandardButton.Ok)
 
     def set_image(self, path):
         self.image_path_le.setText(path)
@@ -159,7 +165,7 @@ class TilerMainWindow(QMainWindow):
             return [page['image'] for page in tiles['pages']]
 
     def print_images(self):
-        from print_manager import print_image, get_printers
+        from .print_manager import print_image, get_printers
         tiles = self._save_tiles(Path(tempfile.mkdtemp(), 'tile-page.png').as_posix())
         saved_files = [page['image'] for page in tiles['pages']]
         if not saved_files:
