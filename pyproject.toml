@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "pw-tile-print"
+version = "0.1.0"
+description = ""
+authors = ["paulwinex <paulwinex@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.12"
+PySide6 = "^6.5.0"
+pillow = "^10.0.1"
+pycups = "^2.0.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
