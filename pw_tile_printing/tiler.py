@@ -223,7 +223,8 @@ class Rect:
                     rects.append(dict(
                         rect=next_rect if not crop else next_rect.crop(self),
                         page_pos=(
-                            offset[0] if (y_step == 0 and x_step == 0) else 0,
+                            # offset[0] if (y_step == 0 and x_step == 0) else 0,
+                            offset[0] if x_step == 0 else 0,
                             offset[1] if y_step == 0 else 0
                         )
                     )
