@@ -8,7 +8,7 @@ This tool provide you to make tiles for print one image on multiple pages.
 
 ### Linux
 
-For sending images to printer on linux you need to install CUSP. 
+For sending images to printer on linux you need to install CUPS. 
 
 ```shell
 sudo apt install -y libcups2-dev python3-dev gcc
